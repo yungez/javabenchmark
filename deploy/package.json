@@ -1,0 +1,17 @@
+{
+  "name": "deploy",
+  "version": "0.0.1",
+  "description": "",
+  "main": "",
+  "scripts": {},
+  "repository": {},
+  "author": "yungez@microsoft.com",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {
+    "azure-arm-resource": "^2.0.0-preview",
+    "azure-arm-website": "^1.0.0-preview",
+    "fs": "0.0.1-security",
+    "ms-rest-azure": "^2.1.0"
+  }
+}
