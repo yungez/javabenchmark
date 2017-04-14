@@ -53,8 +53,7 @@ function createOrGetWebApp(resourceGroupName, name, region, type, size, dockerCo
     resourceManagement.createOrGetResourceGroup(resourceGroupName, null, null, function (err, result) {
         if (err) {
             console.log(`resourceGroup ${resourceGroupName} creatorget failed, ${err}`);
-        } else {
-            console.log(`resourceGroup ${resourceGroupName} creatorget succeeded, ${result.name}`);
+            return callback(err, null);
         }
     });
 
@@ -100,7 +99,6 @@ function createOrGetWebApp(resourceGroupName, name, region, type, size, dockerCo
                                             return callback(err, result);
                                         }
                                         console.log('create webapp succeeded')
-                                        console.log(result.name + result.region);
                                         return callback(err, result);
                                     })
                             }

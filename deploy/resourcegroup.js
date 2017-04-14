@@ -16,7 +16,7 @@ function getResourceGroup(resourceGroupName, callback) {
             } else {
                 var client = new resoureceManagement.ResourceManagementClient(creds, config.subscriptionId);
                 client.resourceGroups.get(resourceGroupName, null, function (err, result) {
-                    if (err) {                        
+                    if (err) {
                         if (err.statusCode === 404) {
                             console.log(`resourceGroup ${resourceGroupName} not found in subs ${config.subscriptionId}`);
                             return callback(err, result);

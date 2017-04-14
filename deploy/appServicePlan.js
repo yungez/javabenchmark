@@ -42,9 +42,9 @@ function createOrGetAppServicePlan(location, sku, resourceGroupName, callback) {
                                     appServicePlanDetail,
                                     function (err, result) {
                                         if (err) {
-                                            console.error(err);                                            
+                                            console.error(err);
                                         } else {
-                                            console.log(`appServicePlan ${appServicePlanName} created in resource group ${resourceGroupName}`);                                            
+                                            console.log(`appServicePlan ${appServicePlanName} created in resource group ${resourceGroupName}`);
                                         }
                                         return callback(err, result);
                                     }

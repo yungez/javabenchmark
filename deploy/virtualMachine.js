@@ -76,9 +76,9 @@ function createOrGetVirtualMachine(resourceGroupName, vmName, region, size, call
                                     createPublicIP(resourceGroupName, 'testpublicip2231', 'west us', 'testdomainlabel32f', function (err, publicIPInfo) {
                                         if (err) return finalCallback(err);
                                         createNIC(resourceGroupName, 'testnetworkinterfacename2039', 'west us', subnetInfo, publicIPInfo, function (err, nicInfo) {
-                                            findVMImage('west us', vmImageConfig.linux.publisher, vmImageConfig.linux.offer, vmImageConfig.linux.sku, function (err, vmImageInfo) {
+                                            findVMImage('westus', vmImageConfig.linux.publisher, vmImageConfig.linux.offer, vmImageConfig.linux.sku, function (err, vmImageInfo) {
                                                 if (err) return finalCallback(err);
-                                                createVirtualMachines(resourceGroupName, 'testvm39201', '111', storageAccount.name, nicInfo.id,
+                                                createVirtualMachines(resourceGroupName, 'testvm39201', 'westus', '111', storageAccount.name, nicInfo.id,
                                                     vmImageConfig.linux.publisher, vmImageConfig.linux.offer, vmImageConfig.linux.sku, vmImageConfig.linux.osType, vmImageInfo[0].name, function (err, vmInfo) {
                                                         if (err) return finalCallback(err);
                                                         console.log(`vm ${vmInfo.name} created succssfully!`);
@@ -159,12 +159,12 @@ function createNIC(resourceGroupName, networkInterfaceName, location, subnetInfo
 function findVMImage(location, publisher, offer, sku, callback) {
     console.log(`finding VMImage ${publisher}`);
 
-    return computeClient.virtualMachineImages.get(location, publisher, offer, sku, 'latest', null, callback);
+    return computeClient.virtualMachineImages.list(location, publisher, offer, sku, {top : 1}, callback);
 }
 
-function createVirtualMachines(resourceGroupName, vmName, vmSize, storageAccountName, nicId, publisher, offer, sku, osType, vmImageVersionNumber, callback) {
+function createVirtualMachines(resourceGroupName, vmName, location, vmSize, storageAccountName, nicId, publisher, offer, sku, osType, vmImageVersionNumber, callback) {
     const vmParameters = {
-        location: region,
+        location: location,
         osProfile: {
             computerName: vmName,
             adminUsername: 'yungez',
@@ -203,7 +203,6 @@ function createVirtualMachines(resourceGroupName, vmName, vmSize, storageAccount
 
 function finalCallback(err, result) {
     if (err) return console.error(err);
-    console.log(`finalCallback result ${result}`);
 }
 
 exports.createOrGetVirtualMachine = createOrGetVirtualMachine;

@@ -8,7 +8,7 @@
     "linux": {
         "publisher": "Canonical",
         "offer": "UbuntuServer",
-        "sku": "14.04.3-LTS",
+        "sku": "16.04-LTS",
         "osType": "Linux"
     }
 }
