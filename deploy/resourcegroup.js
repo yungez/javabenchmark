@@ -3,48 +3,41 @@
 const resoureceManagement = require('azure-arm-resource');
 const msRestAzure = require("ms-rest-azure");
 const fs = require("fs");
+const config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
 
-function getResourceGroup(resourceGroupName) {
-    var configfilePath = './config.json';
-    var fileContent = fs.readFileSync(configfilePath, 'utf8');    
-    var config = JSON.parse(fileContent);
-
+function getResourceGroup(resourceGroupName, callback) {
     msRestAzure.loginWithServicePrincipalSecret(
-        config.clientId,    
-        config.key, 
-        config.tenantId, 
-        function(err, creds) {
+        config.clientId,
+        config.key,
+        config.tenantId,
+        function (err, creds) {
             if (err) {
                 return console.error(err);
-            } else
-            {
+            } else {
                 var client = new resoureceManagement.ResourceManagementClient(creds, config.subscriptionId);
-                client.resourceGroups.get(resourceGroupName, null, function(err, result) {
-                    if (err) {
-                        return console.error(err);
-                    }
-
-                    if (result === 'undefined') {
-                        console.log(`resourceGroup ${resourceGroupName} not found in subs ${config.subscriptionId}`);
-                        return null;
+                client.resourceGroups.get(resourceGroupName, null, function (err, result) {
+                    if (err) {                        
+                        if (err.statusCode === 404) {
+                            console.log(`resourceGroup ${resourceGroupName} not found in subs ${config.subscriptionId}`);
+                            return callback(err, result);
+                        } else {
+                            console.log('in error');
+                            return console.error(err);
+                        }
                     }
 
                     console.log(`resourceGroup ${resourceGroupName} found in subs ${config.subscriptionId}`);
-                    return result;
-                })                            
+                    return callback(err, result);
+                })
             }
-    });    
+        });
 }
 
-function createResourceGroup(resourceGroupName, location, tag) {
+function createResourceGroup(resourceGroupName, location, tag, callback) {
     if (resourceGroupName === null) {
         console.error(`resourceGroupName cannot be null`);
         return;
     }
-
-    var configfilePath = './config.json';
-    var fileContent = fs.readFileSync(configfilePath, 'utf8');    
-    var config = JSON.parse(fileContent);
 
     var groupParameters = {
         location: location,
@@ -54,16 +47,15 @@ function createResourceGroup(resourceGroupName, location, tag) {
     };
 
     msRestAzure.loginWithServicePrincipalSecret(
-        config.clientId,    
-        config.key, 
-        config.tenantId, 
-        function(err, creds) {
+        config.clientId,
+        config.key,
+        config.tenantId,
+        function (err, creds) {
             if (err) {
                 return console.error(err);
-            } else
-            {
+            } else {
                 var client = new resoureceManagement.ResourceManagementClient(creds, config.subscriptionId);
-                client.resourceGroups.createOrUpdate(resourceGroupName, groupParameters, null, function(err, result) {
+                client.resourceGroups.createOrUpdate(resourceGroupName, groupParameters, null, function (err, result) {
                     if (err) {
                         return console.error(err);
                     }
@@ -74,11 +66,34 @@ function createResourceGroup(resourceGroupName, location, tag) {
                     }
 
                     console.log(`resourceGroup ${resourceGroupName} was created in subs ${config.subscriptionId}`);
-                    return result;
-                })                            
+                    return callback(err, result);
+                })
             }
-    });    
+        });
+}
+
+function createOrGetResourceGroup(resourceGroupName, location, tag, callback) {
+    getResourceGroup(resourceGroupName, function (err, result) {
+        if (err) {
+            if (err.statusCode === 404) {
+                // not exists, create one
+                createResourceGroup(resourceGroupName, location, tag, function (err, result) {
+                    if (err) {
+                        console.error(err);
+                        return callback(err, result);
+                    } else {
+                        console.log(`resourceGroup ${resourceGroupName} was created successfully`);
+                        return callback(err, result);
+                    }
+                })
+            }
+        } else {
+            // exists, return get result directly
+            return callback(err, result);
+        }
+    })
 }
 
 exports.getResourceGroup = getResourceGroup;
 exports.createResourceGroup = createResourceGroup;
+exports.createOrGetResourceGroup = createOrGetResourceGroup;

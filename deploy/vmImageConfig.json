@@ -1,0 +1,14 @@
+{
+    "windows": {
+        "publisher": "microsoftwindowsserver",
+        "offer": "windowsserver",
+        "sku": "2012-r2-datacenter",
+        "osType": "windows"
+    },
+    "linux": {
+        "publisher": "Canonical",
+        "offer": "UbuntuServer",
+        "sku": "14.04.3-LTS",
+        "osType": "Linux"
+    }
+}
