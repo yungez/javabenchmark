@@ -1,0 +1,11 @@
+{
+    "webapp": {
+        "name": "",
+        "size": ""
+    },
+    "virtualmachine": {
+        "vmsize": "Standard_A0",
+        "location": "west us",
+        "name": "test"
+    }
+}
