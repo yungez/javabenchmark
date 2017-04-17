@@ -10,6 +10,7 @@
   "devDependencies": {},
   "dependencies": {
     "async": "^2.3.0",
+    "aws-sdk": "^2.41.0",
     "azure-arm-compute": "^1.0.0-preview",
     "azure-arm-network": "^1.0.0-preview",
     "azure-arm-resource": "^2.0.0-preview",
