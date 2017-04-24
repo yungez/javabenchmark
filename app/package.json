@@ -1,0 +1,13 @@
+{
+  "name": "testapp",
+  "version": "0.0.1",
+  "description": "test app",
+  "main": "",
+  "scripts": {},
+  "repository": {},
+  "author": "yungez@microsoft.com",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {    
+  }
+}

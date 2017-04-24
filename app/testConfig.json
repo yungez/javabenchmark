@@ -1,0 +1,49 @@
+{
+    "resources": [
+        {
+            "azure": {
+                "type": "vm",
+                "os": "ubuntu",
+                "size": "Standard_A1",
+                "region": "east us",
+                "resourcegroup": "test1"
+            },
+            "aws": {
+                "type": "vm",
+                "os": "ubuntu",
+                "size": "t2.small",
+                "region": "us-east-1"
+            }
+        },
+        {
+            "azure": {
+                "type": "vm",
+                "os": "ubuntu",
+                "size": "Standard_D2_v2",
+                "region": "west us",
+                "resourcegroup": "test1"
+            },
+            "aws": {
+                "type": "vm",
+                "os": "ubuntu",
+                "size": "c4.large",
+                "region": "us-west-1"
+            }
+        },
+        {
+            "azure": {
+                "type": "vm",
+                "os": "windows",
+                "size": "Standard_D14_v2",
+                "region": "east us",
+                "resourcegroup": "test1"
+            },
+            "aws": {
+                "type": "vm",
+                "os": "windows",
+                "size": "r4.4xlarge",
+                "region": "us-east-1"
+            }
+        }
+    ]
+}
