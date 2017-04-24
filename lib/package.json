@@ -1,8 +1,8 @@
 {
   "name": "deploy",
   "version": "0.0.1",
-  "description": "",
-  "main": "",
+  "description": "package to manage azure and aws vm and web app",
+  "main": "index.js",
   "scripts": {},
   "repository": {},
   "author": "yungez@microsoft.com",
