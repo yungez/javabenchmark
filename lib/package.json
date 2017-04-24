@@ -1,5 +1,5 @@
 {
-  "name": "deploy",
+  "name": "resource",
   "version": "0.0.1",
   "description": "package to manage azure and aws vm and web app",
   "main": "index.js",
