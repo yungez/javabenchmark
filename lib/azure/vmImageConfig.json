@@ -3,7 +3,8 @@
         "publisher": "microsoftwindowsserver",
         "offer": "windowsserver",
         "sku": "2012-r2-datacenter",
-        "osType": "windows"
+        "osType": "windows",
+        "localBaseImage": "E:\\vsiot1\\javabenchmark\\lib\baseimage.vhd"
     },
     "ubuntu": {
         "publisher": "Canonical",

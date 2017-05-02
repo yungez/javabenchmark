@@ -15,84 +15,112 @@ const utils = require('./utils.js');
 const resourcegroup = require('./resourcegroup.js');
 
 var credentials = new msRestAzure.ApplicationTokenCredentials(config.clientId, config.tenantId, config.key);
-var resourceClient = new ResourceManagementClient(credentials, config.subscriptionId);
-var computeClient = new ComputeManagementClient(credentials, config.subscriptionId);
-var networkClient = new NetworkManagementClient(credentials, config.subscriptionId);
+
+var resourceClient, computeClient, networkClient;
 var storageClient = new StorageManagementClient(credentials, config.subscriptionId);
 
 function getVirutalMachine(resourceGroupName, vmName, callback) {
-    computeClient.virtualMachines.get(resourceGroupName, vmName, null, function (err, result) {
-        if (err) {
-            if (err.statusCode === 404) {
-                // not found vm
-                // return null
-                return callback(null, null);
-            } else {
-                // other get error, return callback
+    msRestAzure.loginWithServicePrincipalSecret(
+        config.clientId,
+        config.key,
+        config.tenantId,
+        function (err, creds) {
+            if (err) {
                 console.error(err);
-                return callback(err, result);
+                return callback(err, null);
+            } else {
+                var client = new ComputeManagementClient(creds, config.subscriptionId);
+                client.virtualMachines.get(resourceGroupName, vmName, null, function (err, result) {
+                    if (err) {
+                        if (err.statusCode === 404) {
+                            // not found vm
+                            // return null
+                            return callback(null, null);
+                        } else {
+                            // other get error, return callback
+                            console.error(err);
+                            return callback(err, result);
+                        }
+                    }
+
+                    if (typeof result === 'undefined' || result === '' || result === null) {
+                        return console.log(`vm ${vmName} not found in resource group ${resourceGroupName}`);
+                    }
+
+                    console.log(`found VM: ${result.hostNames}, ${result.containerSize}, ${result.location}, ${result.name}, ${result.type}`);
+
+                    return callback(err, results);
+                });
             }
-        }
-
-        if (typeof result === 'undefined' || result === '' || result === null) {
-            return console.log(`vm ${vmName} not found in resource group ${resourceGroupName}`);
-        }
-
-        console.log(`found VM: ${result.hostNames}, ${result.containerSize}, ${result.location}, ${result.name}, ${result.type}`);
-        return callback(err, results);
-    });
+        });
 }
 
 // location is like : west us
 // vmSize is like : Standard_A1, Standard_D2_v2, Standard_DS14_v2. detail https://docs.microsoft.com/en-us/azure/virtual-machines/windows/sizes-general
 function createOrGetVirtualMachine(resourceGroupName, vmName, location, vmSize, osType, callback) {
 
-    var storageAccountName = resourceGroupName + location.replace(' ', '') + 'disk';
-    var vnetName = resourceGroupName + '-' + location.replace(' ', '') + '-vnet';
-    var publichIPName = vmName + '-ip';
-    var networkInterfaceName = vmName + '-nic';
-    var domainLableName = 'testdomain' + utils.generateRandomId('');
-    var nsgName = vmName + '-nsg';
+    msRestAzure.loginWithServicePrincipalSecret(
+        config.clientId,
+        config.key,
+        config.tenantId,
+        function (err, creds) {
+            if (err) {
+                console.error(err);
+                return callback(err, null);
+            } else {
+                resourceClient = new ResourceManagementClient(creds, config.subscriptionId);
+                computeClient = new ComputeManagementClient(creds, config.subscriptionId);
+                storageClient = new StorageManagementClient(creds, config.subscriptionId);
+                networkClient = new NetworkManagementClient(creds, config.subscriptionId);
 
-    if (osType !== 'windows' && osType !== 'ubuntu') {
-        console.error('invalid osType' + osType);
-        return callback('invalid osType' + osType, null);
-    }
+                var storageAccountName = resourceGroupName + location.replace(' ', '') + 'disk';
+                var vnetName = resourceGroupName + '-' + location.replace(' ', '') + '-vnet';
+                var publichIPName = vmName + '-ip';
+                var networkInterfaceName = vmName + '-nic';
+                var domainLableName = 'testdomain' + utils.generateRandomId('');
+                var nsgName = vmName + '-nsg';
 
-    var publisher = vmImageConfig[osType].publisher;
-    var offer = vmImageConfig[osType].offer;
-    var sku = vmImageConfig[osType].sku;
+                if (osType !== 'windows' && osType !== 'ubuntu') {
+                    console.error('invalid osType' + osType);
+                    return callback('invalid osType' + osType, null);
+                }
+                var publisher = vmImageConfig[osType].publisher;
+                var offer = vmImageConfig[osType].offer;
+                var sku = vmImageConfig[osType].sku;
 
-    resourcegroup.createOrGetResourceGroup(resourceGroupName, location, 'test', function (err, rg) {
-        if (err) return finalCallback(err);
-        createStorageAccount(resourceGroupName, storageAccountName, location, 'Standard_LRS', osType, function (err, storageAccount) {
-            if (err) return finalCallback(err);
-            createVNet(resourceGroupName, vnetName, location, function (err, vnetInfo) {
-                if (err) return finalCallback(err);
-                getSubnetInfo(resourceGroupName, vnetInfo.name, vnetInfo.subnets[0].name, function (err, subnetInfo) {
+                resourcegroup.createOrGetResourceGroup(resourceGroupName, location, 'test', function (err, rg) {
                     if (err) return finalCallback(err);
-                    createPublicIP(resourceGroupName, publichIPName, location, domainLableName, function (err, publicIPInfo) {
+                    createStorageAccount(resourceGroupName, storageAccountName, location, 'Standard_LRS', function (err, storageAccount) {
                         if (err) return finalCallback(err);
-                        createNetworkSecurityGroup(resourceGroupName, location, nsgName, function (err, nsgInfo) {
+                        createVNet(resourceGroupName, vnetName, location, function (err, vnetInfo) {
+                            // catch retryable exception
                             if (err) return finalCallback(err);
-                            createNIC(resourceGroupName, networkInterfaceName, location, subnetInfo, publicIPInfo, nsgInfo, function (err, nicInfo) {
+                            getSubnetInfo(resourceGroupName, vnetInfo.name, vnetInfo.subnets[0].name, function (err, subnetInfo) {
                                 if (err) return finalCallback(err);
-                                findVMImage(location.replace(' ', ''), publisher, offer, sku, function (err, vmImageInfo) {
+                                createPublicIP(resourceGroupName, publichIPName, location, domainLableName, function (err, publicIPInfo) {
                                     if (err) return finalCallback(err);
-                                    createVirtualMachines(resourceGroupName, vmName, location.replace(' ', ''), vmSize, storageAccountName, nicInfo.id,
-                                        publisher, offer, sku, vmImageInfo[0].name, 'imageuri', function (err, vmInfo) {
+                                    createNetworkSecurityGroup(resourceGroupName, location, nsgName, function (err, nsgInfo) {
+                                        if (err) return finalCallback(err);
+                                        createNIC(resourceGroupName, networkInterfaceName, location, subnetInfo, publicIPInfo, nsgInfo, function (err, nicInfo) {
                                             if (err) return finalCallback(err);
-                                            console.log(`creating vm ${vmInfo.name} succssfully!`);
-                                            return finalCallback(null, vmInfo);
+                                            findVMImage(location.replace(' ', ''), publisher, offer, sku, function (err, vmImageInfo) {
+                                                if (err) return finalCallback(err);
+                                                createVirtualMachines(resourceGroupName, vmName, location.replace(' ', ''), vmSize, storageAccount.name, nicInfo.id,
+                                                    publisher, offer, sku, vmImageInfo[0].name, function (err, vmInfo) {
+                                                        if (err) return finalCallback(err);
+                                                        console.log(`vm ${vmInfo.name} created succssfully!`);
+                                                        return finalCallback(null, vmInfo);
+                                                    });
+                                            });
                                         });
+                                    });
                                 });
                             });
                         });
                     });
                 });
-            });
-        });
-    });
+            }
+        })
 }
 
 function createResourceGroup(resourceGroupName, location, callback) {
@@ -100,8 +128,8 @@ function createResourceGroup(resourceGroupName, location, callback) {
     return resourceClient.resourceGroups.createOrUpdate(resourceGroupName, params, callback);
 }
 
-function createStorageAccount(resourceGroupName, name, location, type, osType, callback) {
-    console.log(`creating storage account ${name}`);
+function createStorageAccount(resourceGroupName, name, location, type, callback) {
+    console.log(`create storage account ${name}`);
     var accountParameters = {
         location: location,
         sku: {
@@ -113,47 +141,46 @@ function createStorageAccount(resourceGroupName, name, location, type, osType, c
     storageClient.storageAccounts.create(resourceGroupName, name, accountParameters, function (err, result) {
         if (err) {
             console.error(err);
-            return callback(err, data);
+            storageClient.storageAccounts.listKeys(resourceGroupName, name, null, function (err, data) {
+                if (err) return callback(err, data);
+                console.log('properties: ' + JSON.stringify(data));
+            })
         } else {
-            if (osType === 'windows') {
-                var containerName = 'baseimages';
-                var blobName = 'baseimage.vhd';
-
-                // 2. upload customized windows image to the storage account
-                storageClient.storageAccounts.listKeys(resourceGroupName, name, null, function (err, data) {
-                    if (err) return callback(err, data);
-
-                    var key = data.keys[0].value;
-                    var storageSvc = storage.createBlobService(name, key);
-
-                    storageSvc.createContainerIfNotExists(containerName, { publicAccessLevel: 'blob' }, function (err, result) {
-                        if (err) return callback(err, result);
-                        // check if storage contains customized base image already
-                        storageSvc.getBlobMetadata(containerName, blobName, null, function (err, result) {
-                            if (err) {
-                                // if not exists, start uploading
-                                console.log('uploading customized windows base image to azure storage, it will take a while given size over 100 G....');
-                                storageSvc.createBlockBlobFromLocalFile(containerName, blobName, vmImageConfig.windows.localBaseImage, '', function (err, result) {
-                                    if (err) return callback(err, result);
-                                    console.log('base image prepartion done : ' + JSON.stringify(result));
+            // 2. save customized image to the storage account            
+            storageClient.storageAccounts.listKeys(resourceGroupName, name, null, function (err, data) {
+                if (err) return callback(err, data);
+                var key = data.keys[0].value;
+                console.log('key is : ' + key);
+                var storageSvc = storage.createBlobService(name, key);
+                var sourceStorageSvc = storage.createBlobService('DefaultEndpointsProtocol=https;AccountName=yungezresourcegroup1247;AccountKey=bJP9I8ces+l4Fd2hFGqfomqs4qSrXPz2sZTWbaW6SEhVfo6OmzLdEo3EtgMVUmDaa///BlJXmT9Yf7Rt2ZEjUA==;EndpointSuffix=core.windows.net');
+                storageSvc.createContainerIfNotExists('baseimages', { publicAccessLevel: 'blob' }, function (err, result) {
+                    if (err) return callback(err, result);
+                    // check if storage contains customized base image already
+                    storageSvc.getBlobMetadata('baseimages', 'baseimage.vhd', null, function (err, result) {
+                        if (err) {
+                            sourceStorageSvc.getBlobToLocalFile('system', 'Microsoft.Compute/Images/saved/template-osDisk.35a7e648-84f4-465d-9996-ee2225e82a0e.vhd', './baseimage.vhd', function (err, data) {
+                                // start upload
+                                if (err) return callback(err, data);
+                                storageSvc.createBlockBlobFromLocalFile('baseimages', 'baseimage.vhd', './baseimage.vhd', '', function (err, result) {
+                                    if (err) return calback(err, result);
+                                    console.log('base image prepartion done');
                                     return callback(err, result);
                                 })
-                            } else {
-                                // customized base image already exits, quit
-                                console.log('customized base image is already there, return ' + JSON.stringify(result));
-                                return callback(err, result);
-                            }
-                        });
-                    });
-                });
-            }
+                            })
+                        } else {
+                            // customized base image already exits, quit
+                            console.log('customized base image is already there, return');
+                        }
+                    })
+                })
+            })
         }
         return callback(err, result);
     });
 }
 
 function createVNet(resourceGroupName, name, location, callback) {
-    console.log(`creating VNet ${name}`);
+    console.log(`create VNet ${name}`);
     var vnetParameters = {
         location: location,
         addressSpace: {
@@ -242,7 +269,7 @@ function findVMImage(location, publisher, offer, sku, callback) {
     return computeClient.virtualMachineImages.list(location, publisher, offer, sku, { top: 1 }, callback);
 }
 
-function createVirtualMachines(resourceGroupName, vmName, location, vmSize, storageAccountName, nicId, publisher, offer, sku, imageUri, vmImageVersionNumber, callback) {
+function createVirtualMachines(resourceGroupName, vmName, location, vmSize, storageAccountName, nicId, publisher, offer, sku, vmImageVersionNumber, callback) {
     const vmParameters = {
         location: location,
         osProfile: {
@@ -254,8 +281,14 @@ function createVirtualMachines(resourceGroupName, vmName, location, vmSize, stor
             vmSize: vmSize
         },
         storageProfile: {
+            imageReference: {
+                publisher: publisher,
+                offer: offer,
+                sku: sku,
+                version: vmImageVersionNumber
+            },
             osDisk: {
-                name: 'randomtestdisk.vhd',
+                name: 'randomtest',
                 caching: 'None',
                 createOption: 'fromImage',
                 sourceImageUri: '',
@@ -272,17 +305,6 @@ function createVirtualMachines(resourceGroupName, vmName, location, vmSize, stor
         }
     };
 
-    if (imageUri) {
-        vmParameters.storageProfile.osDisk.sourceImageUri = imageUri;
-        vmParameters.storageProfile.osDisk.osType = 'Windows';
-    } else {
-        vmParameters.storageProfile.imageReference = {
-            publisher: publisher,
-            offer: offer,
-            sku: sku,
-            version: vmImageVersionNumber
-        };
-    }
     console.log(`creating VM ${vmName}`);
     return computeClient.virtualMachines.createOrUpdate(resourceGroupName, vmName, vmParameters, callback);
 }

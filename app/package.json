@@ -8,6 +8,7 @@
   "author": "yungez@microsoft.com",
   "license": "MIT",
   "devDependencies": {},
-  "dependencies": {    
+  "dependencies": {
+    "async": "^2.3.0"
   }
 }
