@@ -20,6 +20,8 @@ version.cs
 
 # Test temp folder
 test_folder/
+testresults/
+app/testplan/
 
 #Mac
 .DS_Store
