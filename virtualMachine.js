@@ -315,7 +315,7 @@ function powerOffVM(resourceGroupName, vmName, callback) {
             console.error(err);
             return callback(err, result);
         } else {
-            console.log(`azure vm ${vmName} in resourceGroup ${resourceGroupName} powerring off successful.`);
+            console.log(`azure vm ${vmName} in resourceGroup ${resourceGroupName} powerring off successfully`);
             return callback(err, result);
         }
     });
@@ -327,7 +327,7 @@ function deleteVM(resourceGroupName, vmName, callback) {
             console.error(err);
             return callback(err, result);
         } else {
-            console.log(`azure vm ${vmName} in resourceGroup ${resourceGroupName} deleting successful.`);
+            console.log(`azure vm ${vmName} in resourceGroup ${resourceGroupName} deleting successfully`);
             return callback(err, result);
         }
     });
@@ -339,7 +339,7 @@ function startVM(resourceGroupName, vmName, callback) {
             console.error(err);
             return callback(err, result);
         } else {
-            console.log(`azure vm ${vmName} in resourceGroup ${resourceGroupName} starting successful.`);
+            console.log(`azure vm ${vmName} in resourceGroup ${resourceGroupName} successfully`);
             return callback(err, result);
         }
     });
