@@ -9,6 +9,9 @@
   "license": "MIT",
   "devDependencies": {},
   "dependencies": {
-    "async": "^2.3.0"
+    "async": "^2.3.0",
+    "concat": "^1.0.3",
+    "csv-parser": "^1.11.0",
+    "json2csv": "^3.7.3"
   }
 }

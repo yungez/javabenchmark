@@ -14,7 +14,7 @@ testclient.prepareAzureTestEnvironment = function (callback) {
     // 1. create resources
     console.log(seperator + '\ncreating azure test resources...\n');
     deploy.createAzureResource(testConfig.azure.resources, function (err, resources) {
-        
+
         if (err) return finalCallback(err, callback);
 
         // 2. deploy resources
@@ -22,12 +22,12 @@ testclient.prepareAzureTestEnvironment = function (callback) {
         var resourceAddresses = [];
         for (var item of resources) {
             resourceAddresses.push(item.address);
-            
+
             if (item.type === 'vm') vmAddresses.push(item.address);
         }
         console.log(seperator + '\ndeploying test app to azure test resources...\n');
         deploy.deployTestAppToVM(vmAddresses, 'yungez', null, '#Bugsfor$123', 'ubuntu', function (err) {
-            
+
             if (err) {
                 console.log('deployTestAppToVM err' + err);
                 return finalCallback(err, callback);
@@ -35,7 +35,7 @@ testclient.prepareAzureTestEnvironment = function (callback) {
             // 3. create test client
             console.log(seperator + '\ncreating azure test client...\n');
             deploy.createAzureResource([testConfig.azure.client], function (err, clients) {
-                
+
                 if (err) {
                     console.log('createAzureResource err' + err);
                     return finalCallback(err, callback);
@@ -48,7 +48,7 @@ testclient.prepareAzureTestEnvironment = function (callback) {
                 }
                 console.log(seperator + '\ndeploying azure test resources...\n');
                 deploy.deployTestClient(clientAddress, 'yungez', null, '#Bugsfor$123', function (err, result) {
-                    
+
                     console.log('test client: ' + JSON.stringify(clients));
 
                     if (err) return finalCallback(err, callback);
@@ -62,7 +62,7 @@ testclient.prepareAzureTestEnvironment = function (callback) {
                     var scenarioNames = [];
                     for (var target of testConfig.azure.resources) {
                         // e.g. azure_westus_vm_standard_a1_ubuntu_500_1_5
-                        var info = ['azure', target.region.replace(' ', ''), target.type, target.size,
+                        var info = ['azure', target.region.replace(' ', ''), target.type, target.size.replace(new RegExp('_', 'g'), ''),
                             testConfig.azure.testplan.threadnum, testConfig.azure.testplan.loopcount, testConfig.azure.testplan.rampupseconds];
                         scenarioNames.push(info.join('_'));
                     }
@@ -124,7 +124,7 @@ testclient.prepareAWSTestEnvironment = function (callback) {
         for (var item of resources) {
             resourceAddresses.push(item.address);
             keypairFiles.push(item.keypairfile);
-            
+
             if (item.type === 'vm') {
                 vmAddresses.push(item.address);
                 vmkeyPairFiles.push(item.keypairfile);
@@ -217,7 +217,7 @@ testclient.prepareAWSTestEnvironment = function (callback) {
     });
 }
 
-testclient.runTest = function (clientAddress, userName, keyFileName, key, testplanfile, logfile, locallogfile, callback) { 
+testclient.runTest = function (clientAddress, userName, keyFileName, key, testplanfile, logfile, locallogfile, callback) {
     console.log('username; ' + userName);
     console.log(seperator + '\nrunning test against ' + clientAddress + '...\n');
     var cmds = 'cd ~/apache-jmeter-3.2/bin && ./jmeter.sh -n -t ' + testplanfile + ' -l ' + logfile;
