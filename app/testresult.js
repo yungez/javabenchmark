@@ -20,6 +20,7 @@ function mergeFiles(fileLists, targetFile, callback) {
         // remove extra header
         var content = fs.readFileSync(targetFile);
         var regexp = '\\s+timeStamp\\S+Connect\\s+';
+
         var newstr = content.toString().replace(new RegExp(regexp, 'g'), '\n');
 
         fs.writeFileSync(targetFile, newstr);
