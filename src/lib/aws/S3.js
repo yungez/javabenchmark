@@ -3,11 +3,9 @@
 const AWS = require('aws-sdk');
 const path = require('path');
 const fs = require('fs');
-AWS.config.loadFromPath(path.resolve(__dirname, '..\\aws', 'config.aws.json'));
 
-function createOrGetBucket(region, bucketName, callback) {
-    // switch region
-    AWS.config.update({ region: region });
+function createOrGetBucket(accessKeyId, accessKey, region, bucketName, callback) {
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var s3 = new AWS.S3({ apiVersion: '2006-03-01' });
 
     var params = {
@@ -29,9 +27,8 @@ function createOrGetBucket(region, bucketName, callback) {
     });
 }
 
-function uploadFile(region, bucketName, fileName, localfileName, callback) {
-    // switch region
-    AWS.config.update({ region: region });
+function uploadFile(accessKeyId, accessKey, region, bucketName, fileName, localfileName, callback) {
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var s3 = new AWS.S3({ apiVersion: '2006-03-01' });
 
 
@@ -43,7 +40,7 @@ function uploadFile(region, bucketName, fileName, localfileName, callback) {
         Body: fileContent
     };
 
-    createOrGetBucket(region, bucketName, function (err, result) {
+    createOrGetBucket(accessKeyId, accessKey, region, bucketName, function (err, result) {
         if (err) {
             return callback(err, result);
         }

@@ -3,10 +3,10 @@
 const fs = require('fs');
 const AWS = require("aws-sdk");
 const path = require('path');
-AWS.config.loadFromPath(path.resolve(__dirname, '..\\aws', 'config.aws.json'));
+const utils = require('../utils.js');
 
-function createKeyPair(region, keyName, pemfileName, callback) {
-    AWS.config.update({ region: region });
+function createKeyPair(accessKeyId, accessKey, region, keyName, pemfileName, callback) {
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var ec2 = new AWS.EC2({ apiVersio: '2016-11-15' });
 
     var params = {
@@ -17,21 +17,26 @@ function createKeyPair(region, keyName, pemfileName, callback) {
             if (err.statusCode === 400) {
                 ec2.createKeyPair({ KeyName: keyName }, function (error, key) {
                     console.log('creating keypair ' + keyName);
-                    if (error) return callback(error, key);
-                    fs.writeFileSync(pemfileName, key.KeyMaterial);
-                    console.log('key file is saved to : ' + pemfileName);
-                    return callback(null, key);
-                })
+                    if (error) {
+                        console.error(error);
+                        return callback(error, key);
+                    } else {
+                        fs.writeFileSync(pemfileName, key.KeyMaterial);
+                        console.log('key file is saved to : ' + pemfileName);
+                        return callback(null, key);
+                    }
+                });
+            } else {
+                return console.error(err);
             }
         }
-        return callback(err, data);
+        return callback(null, data);
 
     })
 }
 
-function createEC2Instance(name, region, osType, instanceType, callback) {
-    // switch region
-    AWS.config.update({ region: region });
+function createEC2Instance(accessKeyId, accessKey, name, region, osType, instanceType, keyPairFileFolder, callback) {
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var ec2 = new AWS.EC2({ apiVersio: '2016-11-15' });
 
     // available region : http://docs.aws.amazon.com/general/latest/gr/rande.html
@@ -79,15 +84,13 @@ function createEC2Instance(name, region, osType, instanceType, callback) {
     }
     ec2.describeInstances(filterParams, function (err, found) {
         //console.log('found is ; ' + JSON.stringify(found));
-        var keyPairFile = path.resolve('.\\' + keyPairName + '.pem');
+        var keyPairFile = path.resolve(keyPairFileFolder + '\\' + keyPairName + '.pem');
         if (err) {
-            console.error('describe ec2 error' + err);
+            console.error('describe ec2 error:\n' + err);
             return callback(err, null);
         } else if (found === '' || found === null || found.Reservations.length === 0) {
             // not found, create new
-            console.log('not found');
-
-            createKeyPair(region, keyPairName, keyPairFile, function (err, result) {
+            createKeyPair(accessKeyId, accessKey, region, keyPairName, keyPairFile, function (err, result) {
                 if (err) return callback(err, result);
                 ec2.runInstances(params, function (err, data) {
                     if (err) {
@@ -156,12 +159,10 @@ function createEC2Instance(name, region, osType, instanceType, callback) {
     /**/
 }
 
-function findImage(keyword, region, callback) {
+function findImage(accessKeyId, accessKey, keyword, region, callback) {
     // switch region
-    AWS.config.update({ region: region });
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var ec2 = new AWS.EC2({ apiVersio: '2016-11-15' });
-
-    AWS.config.update({ region: region });
 
     var imageParams = {
         Filters: [
@@ -214,9 +215,8 @@ function findImage(keyword, region, callback) {
 
 }
 
-function manipulateEC2Instance(region, instanceId, action, callback) {
-    // switch region
-    AWS.config.update({ region: region });
+function manipulateEC2Instance(accessKeyId, accessKey, region, instanceId, action, callback) {
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var ec2 = new AWS.EC2({ apiVersio: '2016-11-15' });
 
     var params = {
@@ -238,7 +238,7 @@ function manipulateEC2Instance(region, instanceId, action, callback) {
                         ]
                     };
 
-                    sleep(20000);
+                    utils.sleep(120000);
                     ec2.describeInstances(params, function (err, status) {
                         if (err) return callback(err, status);
                         //console.log('data is : ' + JSON.stringify(status));
@@ -266,9 +266,8 @@ function manipulateEC2Instance(region, instanceId, action, callback) {
     };
 }
 
-function terminateEC2Instance(region, instanceId, callback) {
-    // switch region
-    AWS.config.update({ region: region });
+function terminateEC2Instance(accessKeyId, accessKey, region, instanceId, callback) {
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var ec2 = new AWS.EC2({ apiVersio: '2016-11-15' });
 
     ec2.terminateInstances({
@@ -287,18 +286,16 @@ function terminateEC2Instance(region, instanceId, callback) {
     })
 }
 
-function waitingForInstanceRunning(region, instanceId, callback) {
-    // switch region
-    AWS.config.update({ region: region });
+function waitingForInstanceRunning(accessKeyId, accessKey, region, instanceId, callback) {
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var ec2 = new AWS.EC2({ apiVersio: '2016-11-15' });
 
     // get ec2 instance status, till it's running
 
 }
 
-function describeNetworkInterface(region, networkInterfaceId, callback) {
-    // switch region
-    AWS.config.update({ region: region });
+function describeNetworkInterface(accessKeyId, accessKey, region, networkInterfaceId, callback) {
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var ec2 = new AWS.EC2({ apiVersio: '2016-11-15' });
 
     var params = {
@@ -306,23 +303,12 @@ function describeNetworkInterface(region, networkInterfaceId, callback) {
             networkInterfaceId
         ]
     };
-    ec2.describeNetworkInterfaces(params, function (err, result) {
-        return callback(err, result);
-    })
+    return ec2.describeNetworkInterfaces(params, callback);
 }
 
-function sleep(milliseconds) {
-    var now = new Date();
-    var exitTime = now.getTime() + milliseconds;
-    while (true) {
-        now = new Date();
-        if (now.getTime() > exitTime) {
-            return;
-        }
-    }
-}
 exports.createEC2Instance = createEC2Instance;
 exports.manipulateEC2Instance = manipulateEC2Instance;
 exports.terminateEC2Instance = terminateEC2Instance;
 exports.describeNetworkInterface = describeNetworkInterface;
 exports.findImage = findImage;
+exports.createKeyPair = createKeyPair;

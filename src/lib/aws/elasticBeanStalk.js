@@ -3,14 +3,13 @@
 const AWS = require("aws-sdk");
 const path = require('path');
 const S3 = require('./S3.js');
-AWS.config.loadFromPath(path.resolve(__dirname, '..\\aws', 'config.aws.json'));
+const fs = require('fs');
 
 const bucketName = 'javatestbucket1';
-const fileName = 'Dockerrun.aws.json';
+const dockerRunConfigfileName = 'Dockerrun.aws.json';
 
-function createApplication(region, name, callback) {
-    // switch region
-    AWS.config.update({ region: region });
+function createApplication(accessKeyId, accessKey, region, name, callback) {
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var elasticBeanStalk = new AWS.ElasticBeanstalk({ apiVersio: '2010-12-01' });
 
     var params = {
@@ -31,9 +30,8 @@ function createApplication(region, name, callback) {
     });
 }
 
-function createEnvironment(region, name, appName, solutionStackName, size, versionlabel, callback) {
-    // switch region
-    AWS.config.update({ region: region });
+function createEnvironment(accessKeyId, accessKey, region, name, appName, solutionStackName, size, versionlabel, callback) {
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var elasticBeanStalk = new AWS.ElasticBeanstalk({ apiVersio: '2010-12-01' });
 
     var params = {
@@ -65,28 +63,30 @@ function createEnvironment(region, name, appName, solutionStackName, size, versi
             // already exists
             console.log('environment ' + name + ' exists already');
             // get environment CNAME
-            elasticBeanStalk.describeEnvironments({ EnvironmentNames: [ name ]}, function(err, result) {
+            elasticBeanStalk.describeEnvironments({ EnvironmentNames: [name] }, function (err, result) {
                 if (err) {
                     console.error(err);
                     return callback(err, result);
                 } else {
                     return callback(err, result.Environments[0]);
                 }
-            });            
+            });
         } else {
             return callback(err, data);
         }
-        
+
     });
 }
 
-function createApplicationVersion(region, appName, versionlabel, callback) {
-    // switch region
-    AWS.config.update({ region: region });
+function createApplicationVersion(accessKeyId, accessKey, region, appName, versionlabel, dockerImageName, callback) {
+    AWS.config = new AWS.Config({ accessKeyId: accessKeyId, secretAccessKey: accessKey, region: region });
     var elasticBeanStalk = new AWS.ElasticBeanstalk({ apiVersio: '2010-12-01' });
 
-    // upload docker config file to S3
-    S3.uploadFile(region, bucketName, fileName, path.resolve(__dirname, '..\\aws', 'Dockerrun.aws.json'), function (err, result) {
+    // customize dockerImageName in config file
+    setDockerImageName(dockerImageName, path.resolve(__dirname, '.\\', dockerRunConfigfileName));
+
+    // upload docker config file to S3    
+    S3.uploadFile(accessKeyId, accessKey, region, bucketName, dockerRunConfigfileName, path.resolve(__dirname, '..\\aws', 'Dockerrun.aws.json'), function (err, result) {
         if (err) return callback(err, result);
 
         var params = {
@@ -94,7 +94,7 @@ function createApplicationVersion(region, appName, versionlabel, callback) {
             VersionLabel: versionlabel,
             SourceBundle: {
                 S3Bucket: bucketName,
-                S3Key: fileName
+                S3Key: dockerRunConfigfileName
             }
         };
 
@@ -111,14 +111,23 @@ function createApplicationVersion(region, appName, versionlabel, callback) {
     });
 }
 
+function setDockerImageName(dockerImageName, dockerRunConfigFile) {
+    if (!fs.existsSync(dockerRunConfigFile)) {
+        return console.error('docker run config file not exists ' + dockerRunConfigFile);
+    }
 
+    var config = require(dockerRunConfigFile);
+    config.Image.Name = dockerImageName;
+    
+    fs.writeFileSync(dockerRunConfigFile, JSON.stringify(config));
+}
 
-function createElasticBeanstalkWebApp(region, appName, envName, size, versionlabel, callback) {
-    createApplication(region, appName, function (err, result) {
+function createElasticBeanstalkWebApp(accessKeyId, accessKey, region, appName, envName, size, versionlabel, dockerImageName, callback) {
+    createApplication(accessKeyId, accessKey, region, appName, function (err, result) {
         if (err) return callback(err, result);
-        createApplicationVersion(region, appName, versionlabel, function (err, result) {
+        createApplicationVersion(accessKeyId, accessKey, region, appName, versionlabel, dockerImageName, function (err, result) {
             if (err) return callback(err, result);
-            createEnvironment(region, envName, appName, '', size, versionlabel, function (err, result) {
+            createEnvironment(accessKeyId, accessKey, region, envName, appName, '', size, versionlabel, function (err, result) {
                 return callback(err, result.CNAME);
             })
         })

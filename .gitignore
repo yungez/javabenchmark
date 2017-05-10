@@ -9,6 +9,7 @@
 *.user
 **/.idea
 **/.vscode
+**/config.aws.json
 
 # Build results
 DROP/
@@ -22,24 +23,11 @@ version.cs
 test_folder/
 testresults/
 app/testplan/
+keypair/
 
 #Mac
 .DS_Store
 
-# Toolchain
-vsc-iot-tools
-
-
-# OP
-log/
-obj/
-_site/
-.optemp/
-_themes/
-_themes.MSDN.Modern/
-_themes.VS.Modern/
-
-.openpublishing.buildcore.ps1
 
 # Logs
 npm-debug.log
